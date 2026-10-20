@@ -1,0 +1,41 @@
+name: Build Ayeh AI iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Build Archive
+        run: |
+          xcodebuild -project App-iOS/AyehAI.xcodeproj \
+                     -scheme AyehAI \
+                     -configuration Release \
+                     -sdk iphoneos \
+                     -archivePath $PWD/build/AyehAI.xcarchive \
+                     CODE_SIGN_IDENTITY="" \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGNING_ALLOWED=NO \
+                     clean archive
+
+      - name: Package Unsigned IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/AyehAI.xcarchive/Products/Applications/AyehAI.app Payload/
+          zip -r AyehAI.ipa Payload
+          rm -rf Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AyehAI-ipa
+          path: AyehAI.ipa
